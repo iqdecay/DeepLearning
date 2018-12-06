@@ -43,7 +43,7 @@ class DataLoader():
         data_type = "train" if not is_testing else "test"
         path = glob('./datasets/%s/%s/*' % (self.dataset_name, data_type))
 
-        self.n_batches = 10
+        self.n_batches = 100
 
         for i in range(self.n_batches-1):
             batch = path[i*batch_size:(i+1)*batch_size]
