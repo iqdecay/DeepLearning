@@ -8,11 +8,14 @@ class DataLoader():
         self.dataset_name = dataset_name
         self.img_res = img_res
 
-    def load_data(self, batch_size=1, is_testing=False):
+    def load_data(self, batch_size=1, is_testing=False, is_showing = False):
         data_type = "train" if not is_testing else "test"
         path = glob('./datasets/%s/%s/*' % (self.dataset_name, data_type))
 
-        batch_images = np.random.choice(path, size=batch_size)
+        if is_showing:
+            batch_images = (path[33], path[29], path[15])
+        else : 
+            batch_images = np.random.choice(path, size=batch_size)
 
         imgs_A = []
         imgs_B = []
@@ -43,7 +46,7 @@ class DataLoader():
         data_type = "train" if not is_testing else "test"
         path = glob('./datasets/%s/%s/*' % (self.dataset_name, data_type))
 
-        self.n_batches = 100
+        self.n_batches = 50
 
         for i in range(self.n_batches-1):
             batch = path[i*batch_size:(i+1)*batch_size]

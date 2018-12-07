@@ -123,7 +123,7 @@ class Pix2Pix():
         def d_layer(layer_input, filters, f_size=4, bn=True):
             """Discriminator layer"""
             d = Conv2D(filters, kernel_size=f_size, strides=2, padding='same')(layer_input)
-            d = LeakyReLU(alpha=0.2)(d)
+            d = LeakyReLU(alpha=0.4)(d)
             if bn:
                 d = BatchNormalization(momentum=0.8)(d)
             return d
@@ -138,7 +138,6 @@ class Pix2Pix():
         d2 = d_layer(d1, self.df*2)
         d3 = d_layer(d2, self.df*4)
         d4 = d_layer(d3, self.df*8)
-
         validity = Conv2D(1, kernel_size=4, strides=1, padding='same')(d4)
 
         return Model([img_A, img_B], validity)
@@ -150,12 +149,14 @@ class Pix2Pix():
         # Adversarial loss ground truths
         valid = np.ones((batch_size,) + self.disc_patch)
         fake = np.zeros((batch_size,) + self.disc_patch)
+        
         accuracy = []
-
         for epoch in range(epochs):
-
-            for batch_i, (imgs_A, imgs_B) in enumerate(self.data_loader.load_batch(batch_size)):
-                last_batch = batch_i
+            data_loaded = self.data_loader.load_batch(batch_size)
+            j = 0
+            epoch_acc = 0
+            for batch_i, (imgs_A, imgs_B) in enumerate(data_loaded):
+                j += 1
 
                 # ---------------------
                 #  Train Discriminator
@@ -183,23 +184,26 @@ class Pix2Pix():
                                                                         d_loss[0], 100*d_loss[1],
                                                                         g_loss[0],
                                                                         elapsed_time))
-                accuracy.append(100*d_loss[1])
 
                 # If at save interval => save generated image samples
                 if batch_i % sample_interval == 0:
                     self.sample_images(epoch, batch_i)
-        del(accuracy[-1])
-        fig = plt.plot([i for i in range(last_batch)],accuracy)
-        plt.title('%s with %d epochs and %d batches' % (self.dataset_name, epochs, self.data_loader.n_batches))
+                epoch_acc += 100*d_loss[1]
+                
+            accuracy.append(epoch_acc/j)
+        fig = plt.figure()
+        ax = plt.subplot(111)
+        ax.plot([i for i in range(epochs)],accuracy)
+        plt.title('%s with %d epochs' % (self.dataset_name, epochs ))
         plt.ylabel('Discriminator accuracy')
-        plt.show()
-        plt.savefig("images/{}/accuracy".format(self.dataset_name))
+        plt.xlabel("Number of epoch")
+        fig.savefig("images/%s/accuracy_epoch%d" % (self.dataset_name, epoch))
 
     def sample_images(self, epoch, batch_i):
         os.makedirs('images/%s' % self.dataset_name, exist_ok=True)
         r, c = 3, 3
 
-        imgs_A, imgs_B = self.data_loader.load_data(batch_size=3, is_testing=True)
+        imgs_A, imgs_B = self.data_loader.load_data(batch_size=3, is_testing=True, is_showing=True)
         fake_A = self.generator.predict(imgs_B)
 
         gen_imgs = np.concatenate([imgs_B, fake_A, imgs_A])
@@ -222,4 +226,4 @@ class Pix2Pix():
 
 if __name__ == '__main__':
     gan = Pix2Pix()
-    gan.train(epochs=1, batch_size=1, sample_interval=10)
+    gan.train(epochs=50, batch_size=1, sample_interval=49)
